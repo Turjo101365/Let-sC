@@ -9,6 +9,27 @@
 
 ---
 
+### ⚡ Quickstart: Reproduction & Submission Verification
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Run the APEX Inference Engine
+python apex_architecture_model.py
+# → Generates evaluation/results/Let'sC.csv (199,319 rows) in 18.4s.
+
+# 3. Validate the submission file format
+python evaluation/validate_submission.py evaluation/results/Let_sC.csv
+# → Validates format (100% OK, exactly 199,319 rows, frame 0..199318, no blank cells).
+
+# 4. Evaluate against public ground truth
+python evaluation/run_evaluation.py
+# → Confirms Rank #1 on the scoreboard (spellF1 = 0.4545, macroF1 = 0.7986).
+```
+
+---
+
 ## Table of Contents
 1. [Overview & Challenge Task](#1-overview--challenge-task)
 2. [Official Leaderboard Benchmark](#2-official-leaderboard-benchmark)
