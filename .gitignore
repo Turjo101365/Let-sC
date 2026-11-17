@@ -45,13 +45,11 @@ data/*
 # The 2026 edition's documents were moved to ../mtah2027-organizers/archive-2026/ -- they describe
 # a different competition and belong with the organiser tooling, not in this repository.
 #
-# *.pdf
-!Let'sC.pdf
-!Let_sC.pdf stays as insurance: internal decks and proposals have a habit of landing in the working
+# *.pdf stays as insurance: internal decks and proposals have a habit of landing in the working
 # tree, and this repository is public.
 *.pdf
+# ...except Team Let'sC's technical document, a competition deliverable.
 !Let'sC.pdf
-!Let_sC.pdf
 
 # Organiser tooling lives in ../mtah2027-organizers, outside this repository. This line is
 # insurance against it being recreated in here by habit.

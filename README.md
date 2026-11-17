@@ -124,7 +124,6 @@ To rebuild the technical document PDF from the Markdown: `python export_pdf.py`.
 | `experiments/` | Audit, isolated variants, failure cases, contact and tag-restart experiments |
 | `tests/` | Synthetic pass, interception, deflection and restart scenes (`python -m unittest discover -s tests`) |
 | `export_pdf.py` | Renders `TECHNICAL_DOCUMENT.md` to PDF |
-| `solution.py`, `multimodal_solution.py`, `amst_hybrid_model.py` | Earlier experiments, **not** used for the submission |
 | `evaluation/`, `starter/`, `games.py` | Competition scorer, validator and starter kit |
 
 ## Rules compliance
