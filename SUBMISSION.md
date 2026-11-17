@@ -17,7 +17,7 @@ pip install -r requirements.txt
 
 # 2. Run the APEX Inference Engine
 python apex_architecture_model.py
-# → Generates evaluation/results/Let'sC.csv (199,319 rows) in 18.4s.
+# → Generates evaluation/results/Let'sC.csv (199,319 rows) in about 6 s.
 
 # 3. Validate the submission file format
 python evaluation/validate_submission.py evaluation/results/Let_sC.csv
@@ -25,7 +25,7 @@ python evaluation/validate_submission.py evaluation/results/Let_sC.csv
 
 # 4. Evaluate against public ground truth
 python evaluation/run_evaluation.py
-# → Confirms Rank #1 on the scoreboard (spellF1 = 0.4545, macroF1 = 0.7986).
+# → Public 5-minute sanity check only (spellF1 0.4842, macroF1 0.8058); not a ranking.
 ```
 
 ---
@@ -48,12 +48,10 @@ When submitting through the official Google Form provided by the organizers, the
 ```
 ======================================================================
 1. Submission Validation: OK (199,319 frames, valid labels H/A/D/X)
-2. Scoreboard Rank: #1 on ground-truth benchmark
-   - spellF1 (Primary Metric): 0.4545  (baseline floor: 0.2433)
-   - macroF1 (Tie-Breaker):   0.7986  (H: 0.8167, A: 0.8237, D: 0.7554)
-   - Alive/Dead Stoppage F1:  0.9425
-   - Team Possession Share Error: 0.0030 (0.3% error margin)
-3. Deterministic Runtime: 18.4 seconds (CPU)
+2. Public 5-minute sanity check (not a ranking; there is no live leaderboard):
+   - spellF1: 0.4842   macroF1: 0.8058
+3. Deterministic: SHA-256 78d1e7c05f4d9cd062281d0bf98016f1f100d7efac7c6382e86f4c1074c3b1af
+   Runtime about 6 s (CPU). Model: 8 m/s speed-gate rule pipeline (TECHNICAL_DOCUMENT.md)
 ======================================================================
 ```
 
