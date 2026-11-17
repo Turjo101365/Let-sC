@@ -1,5 +1,5 @@
-# Dependencies for Team Let'sC APEX Architecture & Evaluation
-numpy>=1.24.0
-pandas>=2.0.0
-scipy>=1.10.0
-reportlab>=4.0.0
+# Team Let'sC -- pinned to the versions the submission file was generated with (Python 3.14).
+# The pipeline and the scorer need only numpy and pandas; reportlab builds the PDF.
+numpy==2.5.1
+pandas==3.0.5
+reportlab==5.0.1
