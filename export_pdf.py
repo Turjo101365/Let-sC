@@ -1,291 +1,164 @@
-"""Converts TECHNICAL_DOCUMENT.md into a professional PDF for Team Let'sC."""
+"""Renders TECHNICAL_DOCUMENT.md to Let'sC.pdf, so the PDF and the Markdown can never disagree.
 
+    python export_pdf.py
+
+Handles the Markdown the document uses: headings, paragraphs, bullet and numbered lists, fenced
+code blocks, pipe tables, horizontal rules, **bold**, *italic* and `code`. Inline $math$ is printed
+as plain text without the dollar signs.
+"""
+
+import html
 import os
+import re
 import shutil
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Preformatted, HRFlowable
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
+from reportlab.platypus import (HRFlowable, Paragraph, Preformatted, SimpleDocTemplate, Spacer,
+                                Table, TableStyle)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+SOURCE = os.path.join(HERE, "TECHNICAL_DOCUMENT.md")
 PDF_PATH = os.path.join(HERE, "Let'sC.pdf")
 PDF_PATH_SAFE = os.path.join(HERE, "Let_sC.pdf")
 
-def build_pdf():
-    doc = SimpleDocTemplate(
-        PDF_PATH,
-        pagesize=letter,
-        rightMargin=0.55 * inch,
-        leftMargin=0.55 * inch,
-        topMargin=0.55 * inch,
-        bottomMargin=0.55 * inch,
-    )
+INK = colors.HexColor("#0f172a")
+BODY = colors.HexColor("#334155")
+ACCENT = colors.HexColor("#0f766e")
 
-    styles = getSampleStyleSheet()
 
-    title_style = ParagraphStyle(
-        "DocTitle",
-        parent=styles["Normal"],
-        fontName="Helvetica-Bold",
-        fontSize=18,
-        leading=22,
-        textColor=colors.HexColor("#0f172a"),
-        spaceAfter=4,
-    )
-    
-    meta_style = ParagraphStyle(
-        "DocMeta",
-        parent=styles["Normal"],
-        fontName="Helvetica-Bold",
-        fontSize=9.5,
-        leading=13,
-        textColor=colors.HexColor("#0f766e"),
-        spaceAfter=10,
-    )
+def make_styles():
+    base = getSampleStyleSheet()["Normal"]
+    return {
+        "h1": ParagraphStyle("h1", parent=base, fontName="Helvetica-Bold", fontSize=17, leading=21,
+                             textColor=INK, spaceAfter=6),
+        "h2": ParagraphStyle("h2", parent=base, fontName="Helvetica-Bold", fontSize=12, leading=16,
+                             textColor=INK, spaceBefore=10, spaceAfter=4, keepWithNext=True),
+        "h3": ParagraphStyle("h3", parent=base, fontName="Helvetica-Bold", fontSize=10, leading=13,
+                             textColor=BODY, spaceBefore=7, spaceAfter=3, keepWithNext=True),
+        "body": ParagraphStyle("body", parent=base, fontName="Helvetica", fontSize=8.5,
+                               leading=12, textColor=BODY, spaceAfter=4),
+        "bullet": ParagraphStyle("bullet", parent=base, fontName="Helvetica", fontSize=8.5,
+                                 leading=12, textColor=BODY, leftIndent=12, bulletIndent=2,
+                                 spaceAfter=2),
+        "bullet2": ParagraphStyle("bullet2", parent=base, fontName="Helvetica", fontSize=8.5,
+                                  leading=12, textColor=BODY, leftIndent=26, bulletIndent=16,
+                                  spaceAfter=2),
+        "body_indent": ParagraphStyle("body_indent", parent=base, fontName="Helvetica",
+                                      fontSize=8.5, leading=12, textColor=BODY, leftIndent=12,
+                                      spaceAfter=4),
+        "code": ParagraphStyle("code", parent=base, fontName="Courier", fontSize=7, leading=9,
+                               textColor=INK, backColor=colors.HexColor("#f1f5f9"),
+                               borderPadding=4, spaceBefore=2, spaceAfter=6),
+        "th": ParagraphStyle("th", parent=base, fontName="Helvetica-Bold", fontSize=7.5,
+                             leading=9.5, textColor=colors.white, alignment=1),
+        "td": ParagraphStyle("td", parent=base, fontName="Helvetica", fontSize=7.5, leading=9.5,
+                             textColor=colors.HexColor("#1e293b"), alignment=1),
+    }
 
-    h1_style = ParagraphStyle(
-        "Heading1_Custom",
-        parent=styles["Normal"],
-        fontName="Helvetica-Bold",
-        fontSize=12,
-        leading=16,
-        textColor=colors.HexColor("#0f172a"),
-        spaceBefore=10,
-        spaceAfter=4,
-        keepWithNext=True,
-    )
 
-    h2_style = ParagraphStyle(
-        "Heading2_Custom",
-        parent=styles["Normal"],
-        fontName="Helvetica-Bold",
-        fontSize=10,
-        leading=13,
-        textColor=colors.HexColor("#334155"),
-        spaceBefore=7,
-        spaceAfter=3,
-        keepWithNext=True,
-    )
+def inline(text):
+    """Markdown inline markup to ReportLab's mini-HTML."""
+    text = html.escape(text, quote=False)
+    text = re.sub(r"\$([^$]+)\$", lambda m: m.group(1).replace("\\", ""), text)
+    text = re.sub(r"`([^`]+)`", r'<font face="Courier">\1</font>', text)
+    text = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", text)
+    text = re.sub(r"(?<![*\w])\*([^*]+)\*(?![*\w])", r"<i>\1</i>", text)
+    text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"\1", text)
+    return text
 
-    body_style = ParagraphStyle(
-        "Body_Custom",
-        parent=styles["Normal"],
-        fontName="Helvetica",
-        fontSize=8,
-        leading=11.5,
-        textColor=colors.HexColor("#334155"),
-        spaceAfter=4,
-    )
 
-    code_style = ParagraphStyle(
-        "Code_Custom",
-        parent=styles["Normal"],
-        fontName="Courier",
-        fontSize=6.5,
-        leading=8.5,
-        textColor=colors.HexColor("#0f172a"),
-    )
-
-    table_header_style = ParagraphStyle(
-        "TH",
-        parent=styles["Normal"],
-        fontName="Helvetica-Bold",
-        fontSize=7.5,
-        leading=9.5,
-        textColor=colors.white,
-        alignment=1,
-    )
-
-    table_cell_style = ParagraphStyle(
-        "TD",
-        parent=styles["Normal"],
-        fontName="Helvetica",
-        fontSize=7.5,
-        leading=9.5,
-        textColor=colors.HexColor("#1e293b"),
-        alignment=1,
-    )
-    
-    table_cell_bold = ParagraphStyle(
-        "TDBold",
-        parent=table_cell_style,
-        fontName="Helvetica-Bold",
-        textColor=colors.HexColor("#0f766e"),
-    )
-
-    story = []
-
-    # Title & Metadata
-    story.append(Paragraph("APEX Architecture: Ball Possession Inference Engine", title_style))
-    story.append(Paragraph("<b>Team:</b> Let'sC &nbsp;|&nbsp; <b>Competition:</b> More than a Hack 2027 (Metrica Sports & FC Barcelona) &nbsp;|&nbsp; <b>Task:</b> Phase 1 Possession", meta_style))
-    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#0f766e"), spaceAfter=8))
-
-    # Executive Summary & Approach
-    story.append(Paragraph("1. Executive Summary & Approach", h1_style))
-    summary_text = (
-        "Team <b>Let'sC</b> addresses the frame-level ball possession inference challenge (199,319 frames @ 25 fps, representing a complete "
-        "LaLiga fixture between FC Barcelona and Athletic Club) by designing and deploying the <b>APEX Architecture</b> (Adaptive Poly-Expert Multimodal "
-        "Possession Inference Engine). Standard classifiers fail due to severe ball occlusion (41% missing ball in graded ground truth), multi-camera "
-        "homography noise, and 25 fps label flickering. APEX solves this through <b>State Inertia</b> in the Physics Expert, dynamic <b>View Reliability Weighting</b>, "
-        "and <b>Causal Temporal State Refinement</b> with an 18-frame (0.72s) confirmation buffer. Evaluated on the official ground-truth benchmark, "
-        "<b>Let'sC</b> achieves <b>Rank #1 on the Official Leaderboard with spellF1 = 0.4545</b> (exceeding all published baselines: baseline_smooth125 @ 0.4242 "
-        "and baseline_smooth50 @ 0.3256), a dominating <b>macroF1 = 0.7986</b>, and near-zero team possession share error (0.3%), executing deterministically "
-        "in under <b>19 seconds</b>."
-    )
-    story.append(Paragraph(summary_text, body_style))
-
-    # Scoreboard Table
-    story.append(Paragraph("Official Evaluation Scoreboard (Ground Truth Benchmark)", h2_style))
-    table_data = [
-        [
-            Paragraph("Rank", table_header_style),
-            Paragraph("Submission / Model", table_header_style),
-            Paragraph("macroF1", table_header_style),
-            Paragraph("spellF1 (Primary)", table_header_style),
-            Paragraph("Poss (GT=17)", table_header_style),
-            Paragraph("Alive/Dead F1", table_header_style),
-            Paragraph("Share Error", table_header_style),
-        ],
-        [
-            Paragraph("<b>1</b>", table_cell_bold),
-            Paragraph("<b>Let'sC (APEX Model)</b>", table_cell_bold),
-            Paragraph("<b>0.7986</b>", table_cell_bold),
-            Paragraph("<b>0.4545</b>", table_cell_bold),
-            Paragraph("27 (9.1s)", table_cell_bold),
-            Paragraph("<b>0.9425</b>", table_cell_bold),
-            Paragraph("<b>0.0030</b>", table_cell_bold),
-        ],
-        [
-            Paragraph("2", table_cell_style),
-            Paragraph("baseline_smooth125", table_cell_style),
-            Paragraph("0.5812", table_cell_style),
-            Paragraph("0.4242", table_cell_style),
-            Paragraph("16 (18.5s)", table_cell_style),
-            Paragraph("0.8991", table_cell_style),
-            Paragraph("0.0520", table_cell_style),
-        ],
-        [
-            Paragraph("3", table_cell_style),
-            Paragraph("baseline_smooth50 (Official Floor)", table_cell_style),
-            Paragraph("0.6207", table_cell_style),
-            Paragraph("0.3256", table_cell_style),
-            Paragraph("26 (10.8s)", table_cell_style),
-            Paragraph("0.8990", table_cell_style),
-            Paragraph("0.0485", table_cell_style),
-        ],
-        [
-            Paragraph("4", table_cell_style),
-            Paragraph("baseline_smooth25", table_cell_style),
-            Paragraph("0.6200", table_cell_style),
-            Paragraph("0.2868", table_cell_style),
-            Paragraph("36 (7.6s)", table_cell_style),
-            Paragraph("0.8974", table_cell_style),
-            Paragraph("0.0556", table_cell_style),
-        ],
-        [
-            Paragraph("5", table_cell_style),
-            Paragraph("baseline_raw", table_cell_style),
-            Paragraph("0.5972", table_cell_style),
-            Paragraph("0.0378", table_cell_style),
-            Paragraph("131 (2.0s)", table_cell_style),
-            Paragraph("0.8920", table_cell_style),
-            Paragraph("0.0457", table_cell_style),
-        ],
-    ]
-    t = Table(table_data, colWidths=[0.5 * inch, 2.3 * inch, 0.8 * inch, 1.1 * inch, 0.9 * inch, 0.9 * inch, 0.8 * inch])
+def table_flowable(rows, styles, width):
+    cells = [[c.strip() for c in r.strip().strip("|").split("|")] for r in rows]
+    cells = [r for r in cells if not all(re.fullmatch(r":?-{2,}:?", c) for c in r)]
+    data = [[Paragraph(inline(c), styles["th" if i == 0 else "td"]) for c in r]
+            for i, r in enumerate(cells)]
+    ncol = max(len(r) for r in data)
+    t = Table(data, colWidths=[width / ncol] * ncol, repeatRows=1)
     t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0f766e")),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("BACKGROUND", (0, 0), (-1, 0), ACCENT),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#cbd5e1")),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.HexColor("#f8fafc"), colors.white]),
         ("TOPPADDING", (0, 0), (-1, -1), 3),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
     ]))
-    story.append(t)
-    story.append(Spacer(1, 6))
+    return t
 
-    # Architecture Overview
-    story.append(Paragraph("2. APEX System Architecture", h1_style))
-    arch_ascii = (
-        "  [INPUT DATA] (Broadcast ADT + Tactical ADT + Homography + Permitted Metadata)\n"
-        "         |\n"
-        "         v\n"
-        "  1. MULTI-VIEW DATA ALIGNMENT (Timestamp Synchronization + Metric Coordinates)\n"
-        "         |\n"
-        "         v\n"
-        "  2. TRACK QUALITY & MOTION ANALYSIS (Missing Data + Noise + Velocity + Acceleration)\n"
-        "         |\n"
-        "  +------+-------------------------+-------------------------+\n"
-        "  |                                |                         |\n"
-        "  v                                v                         v\n"
-        "[SPATIAL EXPERT]            [MOTION EXPERT]          [INTERACTION EXPERT]\n"
-        "  Residual MLP                Compact TCN               Lightweight GAT\n"
-        " 64 Hidden Units              64 Channels               32 Hidden Units\n"
-        "  |                                |                         |\n"
-        "  +--------------------------------+-------------------------+\n"
-        "                                   |\n"
-        "                                   +<--- [PHYSICS EXPERT] (Kinematic + Rule Model)\n"
-        "                                   v\n"
-        "  3. RELIABILITY-AWARE FUSION (View Quality + Expert Confidence + Missingness)\n"
-        "         |\n"
-        "         v\n"
-        "  4. TEMPORAL STATE REFINEMENT (Causal TCN + Probabilistic State Decoder)\n"
-        "         |\n"
-        "         +--------+------------------------+--------+\n"
-        "                  |                                 |\n"
-        "                  v                                 v\n"
-        "        [Possession Estimator]             [Dead Ball Estimator]\n"
-        "                  |                                 |\n"
-        "                  +----------------+----------------+\n"
-        "                                   |\n"
-        "                                   v\n"
-        "                        FINAL STATE PREDICTION (H / A / D / X)\n"
-        "                                   |\n"
-        "                                   v\n"
-        "                    REPRODUCIBLE SUBMISSION ENGINE (Deterministic Export)"
-    )
-    story.append(Preformatted(arch_ascii, code_style))
-    story.append(Spacer(1, 6))
 
-    # Assets & Training Data
-    story.append(Paragraph("3. Assets Used & Training Data Declaration", h1_style))
-    assets_text = (
-        "• <b>Tactical EPTS Tracking:</b> Primary spatial and temporal authority for 46 player tracks and ball coordinates.<br/>"
-        "• <b>Homography Matrices:</b> Used dynamically to compute view-quality confidence w_view = 1 / (1 + ε_rep) to downweight drift frames.<br/>"
-        "• <b>Smart Tagging & Games API:</b> Dynamic period half boundaries resolved via games.half_video_blocks().<br/>"
-        "• <b>Broadcast Stream:</b> Dropped for primary spatial indexing due to unsynchronized pan-tilt zooms; used tactical as the single authority.<br/>"
-        "• <b>Training Data Declaration:</b> Zero human labels used on the competition match. No private ground truth leakage. "
-        "APEX is completely unsupervised and physics-grounded, deriving parameters from sports biomechanics."
-    )
-    story.append(Paragraph(assets_text, body_style))
+def markdown_story(md, styles, width):
+    story, para, lines, i = [], [], md.splitlines(), 0
+    para_style = ["body"]
 
-    # Possession Rules & Limitations
-    story.append(Paragraph("4. Possession Rules & Limitations", h1_style))
-    rules_text = (
-        "• <b>Control Criteria:</b> Effective arrival distance d_eff = max(0, dist - τ · v_app) with reaction time τ = 0.25s and threshold &lt; 3.0m.<br/>"
-        "• <b>Turnover Hysteresis:</b> In 50-50 duels and tackles, an opponent must sustain control for ≥ 18 consecutive frames (0.72s) before a turnover is registered.<br/>"
-        "• <b>Loose Balls & Occlusions:</b> State inertia preserves possessing team status across passes and camera occlusions.<br/>"
-        "• <b>Dead Ball Restarts:</b> 50-frame moving average of collective player velocity dropping below 1.32 m/s for ≥ 60 frames (2.4s) triggers Dead Ball D.<br/>"
-        "• <b>Limitations:</b> Extended scuffles in congested penalty boxes lack vertical elevation data; future iterations could incorporate pose/orientation models."
-    )
-    story.append(Paragraph(rules_text, body_style))
+    def flush():
+        if para:
+            story.append(Paragraph(inline(" ".join(para)), styles[para_style[0]]))
+            para.clear()
 
-    # Reproduction
-    story.append(Paragraph("5. Reproduction & Submission Verification", h1_style))
-    repro_text = (
-        "<code>pip install -r requirements.txt</code><br/>"
-        "<code>python apex_architecture_model.py</code> &nbsp;→ Generates <code>evaluation/results/Let'sC.csv</code> (199,319 rows) in 18.4s.<br/>"
-        "<code>python evaluation/validate_submission.py evaluation/results/Let_sC.csv</code> &nbsp;→ Validates format (100% OK).<br/>"
-        "<code>python evaluation/run_evaluation.py</code> &nbsp;→ Confirms Rank #1 on the scoreboard."
-    )
-    story.append(Paragraph(repro_text, body_style))
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        indent = len(line) - len(line.lstrip(" "))
+        if stripped.startswith("```"):
+            flush()
+            block = []
+            i += 1
+            while i < len(lines) and not lines[i].strip().startswith("```"):
+                block.append(lines[i])
+                i += 1
+            story.append(Preformatted("\n".join(block), styles["code"]))
+        elif stripped.startswith("|"):
+            flush()
+            rows = []
+            while i < len(lines) and lines[i].strip().startswith("|"):
+                rows.append(lines[i])
+                i += 1
+            story.append(table_flowable(rows, styles, width))
+            story.append(Spacer(1, 6))
+            continue
+        elif re.match(r"^#{1,3} ", stripped):
+            flush()
+            level = len(stripped) - len(stripped.lstrip("#"))
+            story.append(Paragraph(inline(stripped[level:].strip()), styles["h%d" % level]))
+            if level == 1:
+                story.append(HRFlowable(width="100%", thickness=1.5, color=ACCENT, spaceAfter=8))
+        elif re.fullmatch(r"-{3,}", stripped):
+            flush()
+            story.append(Spacer(1, 4))
+        elif re.match(r"^[*-] ", stripped):
+            flush()
+            nested = indent >= 2
+            story.append(Paragraph(inline(stripped[2:]), styles["bullet2" if nested else "bullet"],
+                                   bulletText="–" if nested else "•"))
+        elif re.match(r"^\d+\. ", stripped):
+            flush()
+            num, rest = stripped.split(". ", 1)
+            story.append(Paragraph(inline(rest), styles["bullet"], bulletText=num + "."))
+        elif not stripped:
+            flush()
+        else:
+            if not para:
+                para_style[0] = "body_indent" if indent >= 2 else "body"
+            para.append(stripped)
+        i += 1
+    flush()
+    return story
 
-    doc.build(story)
-    print(f"Built PDF: {PDF_PATH}")
+
+def build_pdf():
+    margin = 0.6 * inch
+    doc = SimpleDocTemplate(PDF_PATH, pagesize=letter, leftMargin=margin, rightMargin=margin,
+                            topMargin=margin, bottomMargin=margin,
+                            title="Let'sC - Technical Document", author="Team Let'sC")
+    with open(SOURCE, encoding="utf-8") as f:
+        md = f.read()
+    doc.build(markdown_story(md, make_styles(), letter[0] - 2 * margin))
     shutil.copyfile(PDF_PATH, PDF_PATH_SAFE)
-    print(f"Copied safe PDF: {PDF_PATH_SAFE}")
+    print("Wrote", PDF_PATH)
+    print("Wrote", PDF_PATH_SAFE)
+
 
 if __name__ == "__main__":
     build_pdf()
