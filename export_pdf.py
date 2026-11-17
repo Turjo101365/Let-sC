@@ -1,6 +1,7 @@
-"""Converts TECHNICAL_DOCUMENT.md into a professional PDF for Team Lets'sC."""
+"""Converts TECHNICAL_DOCUMENT.md into a professional PDF for Team Let'sC."""
 
 import os
+import shutil
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
@@ -8,8 +9,8 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.units import inch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PDF_PATH = os.path.join(HERE, "Lets'sC.pdf")
-PDF_PATH_SAFE = os.path.join(HERE, "Lets_sC.pdf")
+PDF_PATH = os.path.join(HERE, "Let'sC.pdf")
+PDF_PATH_SAFE = os.path.join(HERE, "Let_sC.pdf")
 
 def build_pdf():
     doc = SimpleDocTemplate(
@@ -118,19 +119,19 @@ def build_pdf():
 
     # Title & Metadata
     story.append(Paragraph("APEX Architecture: Ball Possession Inference Engine", title_style))
-    story.append(Paragraph("<b>Team:</b> Lets'sC &nbsp;|&nbsp; <b>Competition:</b> More than a Hack 2027 (Metrica Sports & FC Barcelona) &nbsp;|&nbsp; <b>Task:</b> Phase 1 Possession", meta_style))
+    story.append(Paragraph("<b>Team:</b> Let'sC &nbsp;|&nbsp; <b>Competition:</b> More than a Hack 2027 (Metrica Sports & FC Barcelona) &nbsp;|&nbsp; <b>Task:</b> Phase 1 Possession", meta_style))
     story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#0f766e"), spaceAfter=10))
 
     # Executive Summary
     story.append(Paragraph("1. Executive Summary", h1_style))
     summary_text = (
-        "Team <b>Lets'sC</b> addresses the frame-level ball possession inference challenge (199,319 frames @ 25 fps, representing a complete "
+        "Team <b>Let'sC</b> addresses the frame-level ball possession inference challenge (199,319 frames @ 25 fps, representing a complete "
         "fixture between FC Barcelona and Athletic Club) by designing and deploying the <b>APEX Architecture</b> (Adaptive Poly-Expert Multimodal "
         "Possession Inference Engine). APEX is a realistic, production-grade, competition-compliant neural-symbolic framework. It solves the critical "
         "hurdles of sports tracking data: severe ball occlusion (41% missing ball in graded ground truth), multi-camera calibration noise, "
-        "and high-frequency label flickering at 25 fps. On the official benchmark, <b>Lets'sC</b> achieves <b>Rank #1 with spellF1 = 0.4545</b> "
+        "and high-frequency label flickering at 25 fps. On the official benchmark, <b>Let'sC</b> achieves <b>Rank #1 with spellF1 = 0.4545</b> "
         "(exceeding all baselines), a dominating <b>macroF1 = 0.7986</b>, and near-zero team possession share error (0.3%), executing deterministically "
-        "in under <b>18 seconds</b>."
+        "in under <b>19 seconds</b>."
     )
     story.append(Paragraph(summary_text, body_style))
 
@@ -148,7 +149,7 @@ def build_pdf():
         ],
         [
             Paragraph("<b>1</b>", table_cell_bold),
-            Paragraph("<b>Lets'sC (APEX Model)</b>", table_cell_bold),
+            Paragraph("<b>Let'sC (APEX Model)</b>", table_cell_bold),
             Paragraph("<b>0.7986</b>", table_cell_bold),
             Paragraph("<b>0.4545</b>", table_cell_bold),
             Paragraph("27 (9.1s)", table_cell_bold),
@@ -269,17 +270,14 @@ def build_pdf():
     story.append(Paragraph("4. Reproduction & Submission Verification", h1_style))
     repro_text = (
         "The submission pipeline is 100% deterministic, self-contained, and rule-compliant (no manual labeling, no private ground truth leakage):<br/>"
-        "<code>python apex_architecture_model.py</code> &nbsp;→ Generates <code>evaluation/results/Lets'sC.csv</code> (199,319 rows) in 17.9s.<br/>"
-        "<code>python evaluation/validate_submission.py evaluation/results/Lets_sC.csv</code> &nbsp;→ Validates format (100% OK).<br/>"
+        "<code>python apex_architecture_model.py</code> &nbsp;→ Generates <code>evaluation/results/Let'sC.csv</code> (199,319 rows) in 18.4s.<br/>"
+        "<code>python evaluation/validate_submission.py evaluation/results/Let_sC.csv</code> &nbsp;→ Validates format (100% OK).<br/>"
         "<code>python evaluation/run_evaluation.py</code> &nbsp;→ Confirms Rank #1 on the scoreboard."
     )
     story.append(Paragraph(repro_text, body_style))
 
     doc.build(story)
     print(f"Built PDF: {PDF_PATH}")
-    
-    # Also write safe filename copy
-    import shutil
     shutil.copyfile(PDF_PATH, PDF_PATH_SAFE)
     print(f"Copied safe PDF: {PDF_PATH_SAFE}")
 

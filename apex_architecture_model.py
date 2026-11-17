@@ -1,5 +1,5 @@
 """APEX Architecture: Adaptive Poly-Expert Multimodal Possession Inference Engine.
-Team: Lets'sC
+Team: Let'sC
 Competition: More than a Hack 2027 (Metrica Sports & FC Barcelona)
 
 Direct modular implementation of the APEX Architecture:
@@ -30,17 +30,7 @@ import pandas as pd
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = HERE
 sys.path.insert(0, os.path.join(ROOT, "evaluation"))
-from games import GAME, GAMES, require, source_frames
-
-# Match boundary constants
-FIRST_HALF_START = 11185
-FIRST_HALF_END = 90651
-HALFTIME_START = 90652
-HALFTIME_END = 110807
-SECOND_HALF_START = 110808
-SECOND_HALF_KICKOFF = 113742
-SECOND_HALF_END = 190197
-POST_MATCH_START = 190198
+from games import GAME, GAMES, require, source_frames, half_video_blocks, anchor_video_frame
 
 
 # ==============================================================================
@@ -307,11 +297,19 @@ class ReliabilityAwareFusionAndRefinement:
         n_frames,
     ):
         labels = np.full(n_frames, "X", dtype=object)
-        labels[SECOND_HALF_START:SECOND_HALF_KICKOFF] = "D"
+
+        # Retrieve official half boundaries and kickoff anchors from games.py
+        blocks = half_video_blocks(GAME)
+        h1_start, h1_end = blocks[0][1], blocks[0][2]
+        h2_start, h2_end = blocks[1][1], blocks[1][2]
+        kickoff_2nd = anchor_video_frame(GAMES[GAME]["kickoff_2nd"])
+
+        # Between 2nd half tracking start and kickoff whistle, the game is stopped (dead ball)
+        labels[h2_start:kickoff_2nd] = "D"
 
         halves = [
-            (FIRST_HALF_START, FIRST_HALF_END, "A"),  # Athletic kickoff
-            (SECOND_HALF_KICKOFF, SECOND_HALF_END, "H"),  # Barcelona kickoff
+            (h1_start, h1_end, "A"),  # Athletic kickoff
+            (kickoff_2nd, h2_end, "H"),  # Barcelona kickoff
         ]
 
         for s_f, e_f, init_team in halves:
@@ -368,7 +366,7 @@ class ReproducibleSubmissionEngine:
 
 def run_apex_pipeline():
     print("=" * 70)
-    print("APEX Architecture Execution for Team Lets'sC")
+    print("APEX Architecture Execution for Team Let'sC")
     print("=" * 70)
     t0 = time.time()
 
@@ -437,8 +435,8 @@ def run_apex_pipeline():
     print("[7/9 & 8/9] Exporting Final Predictions with Reproducible Submission Engine...")
     engine = ReproducibleSubmissionEngine()
     out_paths = [
-        os.path.join(ROOT, "evaluation/results/Lets'sC.csv"),
-        os.path.join(ROOT, "evaluation/results/Lets_sC.csv"),
+        os.path.join(ROOT, "evaluation/results/Let'sC.csv"),
+        os.path.join(ROOT, "evaluation/results/Let_sC.csv"),
     ]
     engine.export(labels, out_paths)
 

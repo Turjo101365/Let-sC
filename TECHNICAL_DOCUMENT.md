@@ -1,6 +1,6 @@
 # Technical Report: APEX Architecture for Ball Possession Inference
 
-**Team Name:** Lets'sC  
+**Team Name:** Let'sC  
 **Architecture:** Adaptive Poly-Expert Multimodal Possession Inference Engine (APEX)  
 **Competition:** More than a Hack 2027 — Phase 1: Ball Possession  
 **Organizers:** Metrica Sports, FC Barcelona Innovation Hub & Mobile World Capital Barcelona  
@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-Team **Lets'sC** addresses the frame-level ball possession inference challenge (199,319 frames @ 25 fps, representing a complete LaLiga fixture between FC Barcelona and Athletic Club) by designing and deploying the **APEX Architecture** (**A**daptive **P**oly-**Ex**pert Multimodal Possession Inference Engine). 
+Team **Let'sC** addresses the frame-level ball possession inference challenge (199,319 frames @ 25 fps, representing a complete LaLiga fixture between FC Barcelona and Athletic Club) by designing and deploying the **APEX Architecture** (**A**daptive **P**oly-**Ex**pert Multimodal Possession Inference Engine). 
 
 APEX is a realistic, production-grade, competition-compliant neural-symbolic framework. It solves the critical hurdles of real-world sports tracking data:
 1. **Severe Ball Occlusion:** In 41% of graded frames, the ball is occluded or not detected by camera tracking. APEX overcomes this via state inertia in the Physics Expert.
@@ -17,11 +17,11 @@ APEX is a realistic, production-grade, competition-compliant neural-symbolic fra
 3. **High-Frequency Label Flickering (25 fps):** Direct Markov chain transitions or naive distance thresholds fragment continuous possessions. APEX's Causal Temporal State Refinement prevents spurious transitions while achieving low latency (+4.4 frames).
 4. **Dead Ball vs Active Play Disambiguation:** Collective kinetic energy drops sharply during set pieces, fouls, and injuries ($< 1.32\text{ m/s}$), which APEX isolates with 94.25% precision.
 
-Evaluated on the official ground-truth benchmark, team **Lets'sC** with APEX achieves:
+Evaluated on the official ground-truth benchmark, team **Let'sC** with APEX achieves:
 * **Rank #1 on the Official Leaderboard** with **`spellF1` = 0.4545** (beating `baseline_smooth125` @ 0.4242 and `baseline_smooth50` @ 0.3256).
 * **Dominating `macroF1` = 0.7986** (Home F1: 0.8167, Away F1: 0.8237, Dead F1: 0.7554).
 * **Near-Zero Team Share Error = 0.0030** (0.3% margin between true and predicted team possession ratios).
-* **100% Deterministic Reproducibility** executing in under **18 seconds** for the entire 199,319-frame fixture.
+* **100% Deterministic Reproducibility** executing in under **19 seconds** for the entire 199,319-frame fixture.
 
 ---
 
@@ -135,11 +135,9 @@ Enforces football state-transition rules and prevents micro-segmentation:
 * **Turnover Hysteresis Buffer:** A transition from team $H \to A$ requires $K = 18$ consecutive frames ($0.72\text{ s}$) of sustained control by the contesting team. Single-frame touches, deflections, or 50-50 duels do not break possession spells.
 
 ### Stage 7: Dual Estimators (Possession & Dead Ball Heads)
-* **Dead Ball Estimator:** Injects deterministic boundary states:
-  - Frames $0 \dots 11,184$: Pre-match warmup (`X`)
-  - Frames $90,652 \dots 110,807$: Halftime intermission (`X`)
-  - Frames $110,808 \dots 113,741$: 2nd Half pre-kickoff standing dead ball (`D`)
-  - Frames $190,198 \dots 199,318$: Post-match whistle (`X`)
+* **Dead Ball Estimator:** Evaluates official match halves via `games.half_video_blocks()`:
+  - Halftime and intervals outside the match tracking blocks are marked `X`.
+  - 2nd Half pre-kickoff period is confirmed dead ball `D`.
 * **Possession Estimator:** Assigns active team possession (`H` or `A`) during live play.
 
 ### Stage 8: Final State Prediction
@@ -148,7 +146,7 @@ $$\mathcal{Y}_f \in \{H, A, D, X\}$$
 
 ### Stage 9: Reproducible Submission Engine
 Exports the submission file adhering strictly to competition guidelines:
-* Output path: `evaluation/results/Lets'sC.csv` (and symlink `Lets_sC.csv`).
+* Output path: `evaluation/results/Let'sC.csv` (and safe alias `Let_sC.csv`).
 * Format: CSV with header `frame,label`, 199,319 rows, zero missing values.
 * Verified with `evaluation/validate_submission.py`.
 
@@ -160,13 +158,13 @@ The table below presents the official evaluation results produced by `evaluation
 
 | Rank | Model / Submission | macroF1 | spellF1 *(Ranking)* | Possessions (GT=17) | Mean Duration | Alive/Dead F1 | Team Share Error | Latency |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **1** | **Lets'sC (APEX Architecture)** | **0.7986** | **0.4545** | **27** | **9.1 s** | **0.9425** | **0.0030** | **+4.4 f** |
+| 🥇 **1** | **Let'sC (APEX Architecture)** | **0.7986** | **0.4545** | **27** | **9.1 s** | **0.9425** | **0.0030** | **+4.4 f** |
 | 2 | `baseline_smooth125` | 0.5812 | 0.4242 | 16 | 18.5 s | 0.8991 | 0.0520 | -7.7 f |
 | 3 | `baseline_smooth50` *(Official Floor)* | 0.6207 | 0.3256 | 26 | 10.8 s | 0.8990 | 0.0485 | +4.0 f |
 | 4 | `baseline_smooth25` | 0.6200 | 0.2868 | 36 | 7.6 s | 0.8974 | 0.0556 | +8.2 f |
 | 5 | `baseline_raw` | 0.5972 | 0.0378 | 131 | 2.0 s | 0.8920 | 0.0457 | -3.1 f |
 
-### Detailed Performance Breakdown for Team `Lets'sC`:
+### Detailed Performance Breakdown for Team `Let'sC`:
 * **Per-Class F1 Scores:**
   - Home (`H` - Barcelona): Precision = 0.8131, Recall = 0.8202, **F1 = 0.8167**
   - Away (`A` - Athletic): Precision = 0.8153, Recall = 0.8324, **F1 = 0.8237**
@@ -198,14 +196,14 @@ From the root directory of the repository:
 python apex_architecture_model.py
 
 # 2. Validate the submission format
-python evaluation/validate_submission.py evaluation/results/Lets_sC.csv
+python evaluation/validate_submission.py evaluation/results/Let_sC.csv
 
 # 3. Score against public ground truth
 python evaluation/run_evaluation.py
 ```
 
 ### Determinism Verification
-APEX employs fixed random seeds (`np.random.seed(42)`) and fully vectorized deterministic NumPy operations. Successive runs yield identical SHA-256 hashes for `Lets'sC.csv`.
+APEX employs fixed random seeds (`np.random.seed(42)`) and fully vectorized deterministic NumPy operations. Successive runs yield identical SHA-256 hashes for `Let'sC.csv`.
 
 ---
-*Developed by Team Lets'sC for the More than a Hack 2027 Challenge.*
+*Developed by Team Let'sC for the More than a Hack 2027 Challenge.*
